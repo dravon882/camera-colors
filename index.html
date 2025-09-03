@@ -1,72 +1,46 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Camera with Color Background</title>
+  <title>Custom Spin Wheel</title>
   <style>
     body {
-      margin: 0;
-      height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      background: #fff;
+      height: 100vh;
+      margin: 0;
+      background: #f0f0f0;
       font-family: Arial, sans-serif;
     }
 
+    h1 {
+      margin-bottom: 10px;
+    }
+
+    canvas {
+      border: 5px solid #333;
+      border-radius: 50%;
+      margin: 20px 0;
+    }
+
     #controls {
-      position: fixed;
-      top: 10px;
-      left: 50%;
-      transform: translateX(-50%);
       display: flex;
       gap: 10px;
-      background: rgba(255, 255, 255, 0.9);
-      padding: 8px 12px;
-      border-radius: 12px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-      z-index: 10;
+      margin-bottom: 10px;
     }
 
-    #camera {
-      position: absolute;
-      top: 50px;
-      left: 50px;
-      width: 200px;
-      height: 150px;
-      border: 3px solid #000;
-      border-radius: 12px;
-      overflow: hidden;
-      cursor: grab;
-      z-index: 5;
-      background: #000;
-    }
-
-    #camera video {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    #snapshot {
-      margin-top: 20px;
-      max-width: 90%;
-      border: 2px solid #333;
-      border-radius: 8px;
-      display: none;
-    }
-
-    button, input[type="color"] {
+    input, button {
       padding: 6px 10px;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
       font-size: 14px;
     }
 
     button {
+      cursor: pointer;
+      border: none;
+      border-radius: 6px;
       background: #007bff;
       color: white;
     }
@@ -74,206 +48,121 @@
     button:hover {
       background: #0056b3;
     }
+
+    #winner {
+      font-size: 18px;
+      font-weight: bold;
+      margin-top: 10px;
+    }
   </style>
 </head>
 <body>
+  <h1>🎡 Custom Spin Wheel</h1>
+
   <div id="controls">
-    <input type="color" id="colorPicker" value="#ffffff">
-    <button id="captureBtn">📸 Capture</button>
-    <a id="downloadLink" style="display:none;" download="snapshot.png">💾 Download</a>
+    <input type="text" id="nameInput" placeholder="Enter a name/item">
+    <button id="addBtn">Add</button>
+    <button id="spinBtn">Spin</button>
   </div>
 
-  <div id="camera">
-    <video autoplay playsinline></video>
-  </div>
-
-  <canvas id="canvas" style="display:none;"></canvas>
-  <img id="snapshot" alt="Your snapshot">
+  <canvas id="wheel" width="300" height="300"></canvas>
+  <div id="winner"></div>
 
   <script>
-    const video = document.querySelector("#camera video");
-    const colorPicker = document.getElementById("colorPicker");
-    const captureBtn = document.getElementById("captureBtn");
-    const snapshot = document.getElementById("snapshot");
-    const canvas = document.getElementById("canvas");
-    const downloadLink = document.getElementById("downloadLink");
-    const cameraDiv = document.getElementById("camera");
+    const canvas = document.getElementById("wheel");
+    const ctx = canvas.getContext("2d");
+    const addBtn = document.getElementById("addBtn");
+    const spinBtn = document.getElementById("spinBtn");
+    const nameInput = document.getElementById("nameInput");
+    const winnerDiv = document.getElementById("winner");
 
-    // 🎥 Start camera
-    navigator.mediaDevices.getUserMedia({ video: true, audio: false })
-      .then(stream => {
-        video.srcObject = stream;
-      })
-      .catch(err => {
-        alert("Camera access denied: " + err);
-      });
+    let slices = ["Red", "Blue", "Green", "Yellow"]; // default
+    let colors = ["#e74c3c", "#3498db", "#2ecc71", "#f1c40f"];
+    let startAngle = 0;
+    let spinAngle = 0;
+    let spinning = false;
 
-    // 🎨 Change background color
-    colorPicker.addEventListener("input", () => {
-      document.body.style.background = colorPicker.value;
-    });
+    function drawWheel() {
+      const radius = canvas.width / 2;
+      const sliceAngle = (2 * Math.PI) / slices.length;
 
-    // 📷 Capture snapshot
-    captureBtn.addEventListener("click", () => {
-      const ctx = canvas.getContext("2d");
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Fill background color
-      ctx.fillStyle = colorPicker.value;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      for (let i = 0; i < slices.length; i++) {
+        const angle = startAngle + i * sliceAngle;
+        ctx.beginPath();
+        ctx.moveTo(radius, radius);
+        ctx.arc(radius, radius, radius, angle, angle + sliceAngle);
+        ctx.fillStyle = colors[i % colors.length];
+        ctx.fill();
+        ctx.stroke();
 
-      // Draw camera feed
-      const rect = cameraDiv.getBoundingClientRect();
-      ctx.drawImage(video, rect.left, rect.top, rect.width, rect.height);
+        // Text
+        ctx.save();
+        ctx.translate(radius, radius);
+        ctx.rotate(angle + sliceAngle / 2);
+        ctx.textAlign = "right";
+        ctx.fillStyle = "white";
+        ctx.font = "16px Arial";
+        ctx.fillText(slices[i], radius - 10, 5);
+        ctx.restore();
+      }
 
-      const dataURL = canvas.toDataURL("image/png");
-      snapshot.src = dataURL;
-      snapshot.style.display = "block";
+      // Arrow
+      ctx.fillStyle = "#333";
+      ctx.beginPath();
+      ctx.moveTo(radius, 0);
+      ctx.lineTo(radius - 10, 20);
+      ctx.lineTo(radius + 10, 20);
+      ctx.closePath();
+      ctx.fill();
+    }
 
-      downloadLink.href = dataURL;
-      downloadLink.style.display = "inline-block";
-    });
+    function spinWheel() {
+      if (spinning) return;
+      spinning = true;
+      spinAngle = Math.random() * 2000 + 2000; // spin between 2000–4000deg
+      let duration = 4000; // 4 seconds
+      let start = null;
 
-    // 🖱 Make camera draggable
-    let isDragging = false, offsetX, offsetY;
-    cameraDiv.addEventListener("mousedown", (e) => {
-      isDragging = true;
-      offsetX = e.clientX - cameraDiv.offsetLeft;
-      offsetY = e.clientY - cameraDiv.offsetTop;
-      cameraDiv.style.cursor = "grabbing";
-    });
+      function animate(timestamp) {
+        if (!start) start = timestamp;
+        const progress = timestamp - start;
+        const easing = 1 - Math.pow(1 - progress / duration, 3); // ease-out
+        const currentAngle = spinAngle * easing;
+        startAngle = currentAngle * Math.PI / 180;
+        drawWheel();
 
-    document.addEventListener("mousemove", (e) => {
-      if (isDragging) {
-        cameraDiv.style.left = (e.clientX - offsetX) + "px";
-        cameraDiv.style.top = (e.clientY - offsetY) + "px";
+        if (progress < duration) {
+          requestAnimationFrame(animate);
+        } else {
+          spinning = false;
+          pickWinner();
+        }
+      }
+
+      requestAnimationFrame(animate);
+    }
+
+    function pickWinner() {
+      const sliceAngle = 360 / slices.length;
+      const degrees = (startAngle * 180 / Math.PI) % 360;
+      const index = Math.floor((360 - degrees + 90) % 360 / sliceAngle);
+      winnerDiv.textContent = `Winner: 🎉 ${slices[index]} 🎉`;
+    }
+
+    addBtn.addEventListener("click", () => {
+      if (nameInput.value.trim() !== "") {
+        slices.push(nameInput.value.trim());
+        colors.push("#" + Math.floor(Math.random()*16777215).toString(16));
+        nameInput.value = "";
+        drawWheel();
       }
     });
 
-    document.addEventListener("mouseup", () => {
-      isDragging = false;
-      cameraDiv.style.cursor = "grab";
-    });
+    spinBtn.addEventListener("click", spinWheel);
 
-    // 📱 Mobile touch drag
-    cameraDiv.addEventListener("touchstart", (e) => {
-      isDragging = true;
-      offsetX = e.touches[0].clientX - cameraDiv.offsetLeft;
-      offsetY = e.touches[0].clientY - cameraDiv.offsetTop;
-    });
-
-    document.addEventListener("touchmove", (e) => {
-      if (isDragging) {
-        cameraDiv.style.left = (e.touches[0].clientX - offsetX) + "px";
-        cameraDiv.style.top = (e.touches[0].clientY - offsetY) + "px";
-      }
-    });
-
-    document.addEventListener("touchend", () => {
-      isDragging = false;
-    });
-  </script>
-</body>
-</html>  </style>
-</head>
-<body>
-  <div id="controls">
-    <input type="color" id="colorPicker" value="#ffffff">
-    <button id="captureBtn">📸 Capture</button>
-    <a id="downloadLink" style="display:none;" download="snapshot.png">💾 Download</a>
-  </div>
-
-  <div id="camera">
-    <video autoplay playsinline></video>
-  </div>
-
-  <canvas id="canvas" style="display:none;"></canvas>
-  <img id="snapshot" alt="Your snapshot">
-
-  <script>
-    const video = document.querySelector("#camera video");
-    const colorPicker = document.getElementById("colorPicker");
-    const captureBtn = document.getElementById("captureBtn");
-    const snapshot = document.getElementById("snapshot");
-    const canvas = document.getElementById("canvas");
-    const downloadLink = document.getElementById("downloadLink");
-    const cameraDiv = document.getElementById("camera");
-
-    // 🎥 Start camera
-    navigator.mediaDevices.getUserMedia({ video: true, audio: false })
-      .then(stream => {
-        video.srcObject = stream;
-      })
-      .catch(err => {
-        alert("Camera access denied: " + err);
-      });
-
-    // 🎨 Change background color
-    colorPicker.addEventListener("input", () => {
-      document.body.style.background = colorPicker.value;
-    });
-
-    // 📷 Capture snapshot
-    captureBtn.addEventListener("click", () => {
-      const ctx = canvas.getContext("2d");
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-
-      // Fill background color
-      ctx.fillStyle = colorPicker.value;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      // Draw camera feed
-      const rect = cameraDiv.getBoundingClientRect();
-      ctx.drawImage(video, rect.left, rect.top, rect.width, rect.height);
-
-      const dataURL = canvas.toDataURL("image/png");
-      snapshot.src = dataURL;
-      snapshot.style.display = "block";
-
-      downloadLink.href = dataURL;
-      downloadLink.style.display = "inline-block";
-    });
-
-    // 🖱 Make camera draggable
-    let isDragging = false, offsetX, offsetY;
-    cameraDiv.addEventListener("mousedown", (e) => {
-      isDragging = true;
-      offsetX = e.clientX - cameraDiv.offsetLeft;
-      offsetY = e.clientY - cameraDiv.offsetTop;
-      cameraDiv.style.cursor = "grabbing";
-    });
-
-    document.addEventListener("mousemove", (e) => {
-      if (isDragging) {
-        cameraDiv.style.left = (e.clientX - offsetX) + "px";
-        cameraDiv.style.top = (e.clientY - offsetY) + "px";
-      }
-    });
-
-    document.addEventListener("mouseup", () => {
-      isDragging = false;
-      cameraDiv.style.cursor = "grab";
-    });
-
-    // 📱 Mobile touch drag
-    cameraDiv.addEventListener("touchstart", (e) => {
-      isDragging = true;
-      offsetX = e.touches[0].clientX - cameraDiv.offsetLeft;
-      offsetY = e.touches[0].clientY - cameraDiv.offsetTop;
-    });
-
-    document.addEventListener("touchmove", (e) => {
-      if (isDragging) {
-        cameraDiv.style.left = (e.touches[0].clientX - offsetX) + "px";
-        cameraDiv.style.top = (e.touches[0].clientY - offsetY) + "px";
-      }
-    });
-
-    document.addEventListener("touchend", () => {
-      isDragging = false;
-    });
+    drawWheel();
   </script>
 </body>
 </html>
