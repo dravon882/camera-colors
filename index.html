@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Camera with Color Background</title>
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #fff;
+      font-family: Arial, sans-serif;
+    }
+
+    #controls {
+      position: fixed;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 10px;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 8px 12px;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+      z-index: 10;
+    }
+
+    #camera {
+      position: absolute;
+      top: 50px;
+      left: 50px;
+      width: 200px;
+      height: 150px;
+      border: 3px solid #000;
+      border-radius: 12px;
+      overflow: hidden;
+      cursor: grab;
+      z-index: 5;
+      background: #000;
+    }
+
+    #camera video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    #snapshot {
+      margin-top: 20px;
+      max-width: 90%;
+      border: 2px solid #333;
+      border-radius: 8px;
+      display: none;
+    }
+
+    button, input[type="color"] {
+      padding: 6px 10px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    button {
+      background: #007bff;
+      color: white;
+    }
+
+    button:hover {
+      background: #0056b3;
+    }
+  </style>
+</head>
+<body>
+  <div id="controls">
+    <input type="color" id="colorPicker" value="#ffffff">
+    <button id="captureBtn">📸 Capture</button>
+    <a id="downloadLink" style="display:none;" download="snapshot.png">💾 Download</a>
+  </div>
+
+  <div id="camera">
+    <video autoplay playsinline></video>
+  </div>
+
+  <canvas id="canvas" style="display:none;"></canvas>
+  <img id="snapshot" alt="Your snapshot">
+
+  <script>
+    const video = document.querySelector("#camera video");
+    const colorPicker = document.getElementById("colorPicker");
+    const captureBtn = document.getElementById("captureBtn");
+    const snapshot = document.getElementById("snapshot");
+    const canvas = document.getElementById("canvas");
+    const downloadLink = document.getElementById("downloadLink");
+    const cameraDiv = document.getElementById("camera");
+
+    // 🎥 Start camera
+    navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+      .then(stream => {
+        video.srcObject = stream;
+      })
+      .catch(err => {
+        alert("Camera access denied: " + err);
+      });
+
+    // 🎨 Change background color
+    colorPicker.addEventListener("input", () => {
+      document.body.style.background = colorPicker.value;
+    });
+
+    // 📷 Capture snapshot
+    captureBtn.addEventListener("click", () => {
+      const ctx = canvas.getContext("2d");
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      // Fill background color
+      ctx.fillStyle = colorPicker.value;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Draw camera feed
+      const rect = cameraDiv.getBoundingClientRect();
+      ctx.drawImage(video, rect.left, rect.top, rect.width, rect.height);
+
+      const dataURL = canvas.toDataURL("image/png");
+      snapshot.src = dataURL;
+      snapshot.style.display = "block";
+
+      downloadLink.href = dataURL;
+      downloadLink.style.display = "inline-block";
+    });
+
+    // 🖱 Make camera draggable
+    let isDragging = false, offsetX, offsetY;
+    cameraDiv.addEventListener("mousedown", (e) => {
+      isDragging = true;
+      offsetX = e.clientX - cameraDiv.offsetLeft;
+      offsetY = e.clientY - cameraDiv.offsetTop;
+      cameraDiv.style.cursor = "grabbing";
+    });
+
+    document.addEventListener("mousemove", (e) => {
+      if (isDragging) {
+        cameraDiv.style.left = (e.clientX - offsetX) + "px";
+        cameraDiv.style.top = (e.clientY - offsetY) + "px";
+      }
+    });
+
+    document.addEventListener("mouseup", () => {
+      isDragging = false;
+      cameraDiv.style.cursor = "grab";
+    });
+
+    // 📱 Mobile touch drag
+    cameraDiv.addEventListener("touchstart", (e) => {
+      isDragging = true;
+      offsetX = e.touches[0].clientX - cameraDiv.offsetLeft;
+      offsetY = e.touches[0].clientY - cameraDiv.offsetTop;
+    });
+
+    document.addEventListener("touchmove", (e) => {
+      if (isDragging) {
+        cameraDiv.style.left = (e.touches[0].clientX - offsetX) + "px";
+        cameraDiv.style.top = (e.touches[0].clientY - offsetY) + "px";
+      }
+    });
+
+    document.addEventListener("touchend", () => {
+      isDragging = false;
+    });
+  </script>
+</body>
+</html>  </style>
+</head>
+<body>
+  <div id="controls">
+    <input type="color" id="colorPicker" value="#ffffff">
+    <button id="captureBtn">📸 Capture</button>
+    <a id="downloadLink" style="display:none;" download="snapshot.png">💾 Download</a>
+  </div>
+
+  <div id="camera">
+    <video autoplay playsinline></video>
+  </div>
+
+  <canvas id="canvas" style="display:none;"></canvas>
+  <img id="snapshot" alt="Your snapshot">
+
+  <script>
+    const video = document.querySelector("#camera video");
+    const colorPicker = document.getElementById("colorPicker");
+    const captureBtn = document.getElementById("captureBtn");
+    const snapshot = document.getElementById("snapshot");
+    const canvas = document.getElementById("canvas");
+    const downloadLink = document.getElementById("downloadLink");
+    const cameraDiv = document.getElementById("camera");
+
+    // 🎥 Start camera
+    navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+      .then(stream => {
+        video.srcObject = stream;
+      })
+      .catch(err => {
+        alert("Camera access denied: " + err);
+      });
+
+    // 🎨 Change background color
+    colorPicker.addEventListener("input", () => {
+      document.body.style.background = colorPicker.value;
+    });
+
+    // 📷 Capture snapshot
+    captureBtn.addEventListener("click", () => {
+      const ctx = canvas.getContext("2d");
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      // Fill background color
+      ctx.fillStyle = colorPicker.value;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Draw camera feed
+      const rect = cameraDiv.getBoundingClientRect();
+      ctx.drawImage(video, rect.left, rect.top, rect.width, rect.height);
+
+      const dataURL = canvas.toDataURL("image/png");
+      snapshot.src = dataURL;
+      snapshot.style.display = "block";
+
+      downloadLink.href = dataURL;
+      downloadLink.style.display = "inline-block";
+    });
+
+    // 🖱 Make camera draggable
+    let isDragging = false, offsetX, offsetY;
+    cameraDiv.addEventListener("mousedown", (e) => {
+      isDragging = true;
+      offsetX = e.clientX - cameraDiv.offsetLeft;
+      offsetY = e.clientY - cameraDiv.offsetTop;
+      cameraDiv.style.cursor = "grabbing";
+    });
+
+    document.addEventListener("mousemove", (e) => {
+      if (isDragging) {
+        cameraDiv.style.left = (e.clientX - offsetX) + "px";
+        cameraDiv.style.top = (e.clientY - offsetY) + "px";
+      }
+    });
+
+    document.addEventListener("mouseup", () => {
+      isDragging = false;
+      cameraDiv.style.cursor = "grab";
+    });
+
+    // 📱 Mobile touch drag
+    cameraDiv.addEventListener("touchstart", (e) => {
+      isDragging = true;
+      offsetX = e.touches[0].clientX - cameraDiv.offsetLeft;
+      offsetY = e.touches[0].clientY - cameraDiv.offsetTop;
+    });
+
+    document.addEventListener("touchmove", (e) => {
+      if (isDragging) {
+        cameraDiv.style.left = (e.touches[0].clientX - offsetX) + "px";
+        cameraDiv.style.top = (e.touches[0].clientY - offsetY) + "px";
+      }
+    });
+
+    document.addEventListener("touchend", () => {
+      isDragging = false;
+    });
+  </script>
+</body>
+</html>
